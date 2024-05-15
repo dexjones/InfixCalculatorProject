@@ -17,62 +17,50 @@ public class InfixCalculator {
     private int solution;
     private List<String> tokens;
     private LinkedStack<Integer> numStack;
-    private LinkedStack<Character> charStack;
+    private LinkedStack<Character> operatorStack;
     public InfixCalculator() {
         this.exp = "";
         this.tokens = new ArrayList<>();
         this.numStack = new LinkedStack<>();
-        this.charStack = new LinkedStack<>();
+        this.operatorStack = new LinkedStack<>();
     }
     public InfixCalculator(String exp) {
         this.exp = exp;
         this.tokens = new ArrayList<>();
         this.numStack = new LinkedStack<>();
-        this.charStack = new LinkedStack<>();
+        this.operatorStack = new LinkedStack<>();
     }
     public void setExpression(String exp) {
         this.exp = exp;
         evaluateInfix(exp);
     }
-    public String results() {
-        StringBuilder space = new StringBuilder();
-        if (!OK) {
-            for (int i = 0; i < errSpot; i++) {
-                space.append(" ");
-            }
-            return exp + "\n" + space + errMessage;
-        }
 
-        else {
-            return exp + " = " + solution;
-        }
-    }
     private void split() {
         StringBuilder s1 = new StringBuilder();
         StringBuilder s2 = new StringBuilder();
         LinkedStack<Character> cStack = new LinkedStack<>();
         OK = true;
-        int state = 0;
+        int state = 0; // state changes to either operators or operands
 
         for (int i = 0; i < exp.length() && OK; i++) {
             char currentChar = exp.charAt(i);
             if (checkChar(currentChar)) {
                 if (state == 0) {
-                    if (!Character.isWhitespace(currentChar)) {
-                        if (Character.isDigit(currentChar)) {
-                            s1.setLength(0); // Erase s1
-                            while (i < exp.length() && Character.isDigit(exp.charAt(i))) {
+                    if (!Character.isWhitespace(currentChar)) { // Checks for whitespace
+                        if (Character.isDigit(currentChar)) { // Checks for number
+                            s1.setLength(0); // Erase s1 to get ready to build number if it is more than one digit
+                            while (i < exp.length() && Character.isDigit(exp.charAt(i))) { // appends numbers to s1 until number complete
                                 s1.append(exp.charAt(i));
                                 i++;
                             }
-                            state = 1;
+                            state = 1; // changes state
                             tokens.add(s1.toString());
                             i--;
                         }
-                        else if (isOp(currentChar)) {
+                        else if (isOp(currentChar)) { // Checks if character is operator, error if so
                             OK = false;
                             errSpot = i;
-                            errMessage = "^ Operand or ( expected";
+                            errMessage = "Operand or ( expected";
                             solution = 0;
                             return;
                         }
@@ -83,7 +71,7 @@ public class InfixCalculator {
                             if (cStack.isEmpty()) {
                                 OK = false;
                                 errSpot = i;
-                                errMessage = "^ unmatched )";
+                                errMessage = "Unmatched )";
                                 solution = 0;
                                 return;
                             }
@@ -91,12 +79,12 @@ public class InfixCalculator {
                         }
                     }
                 }
-                else if (state == 1) {
-                    if (!Character.isWhitespace(currentChar)) {
+                else if (state == 1) { // operator
+                    if (!Character.isWhitespace(currentChar)) { // Checks for whitespace
                         if (Character.isDigit(currentChar)) {
                             OK = false;
                             errSpot = i;
-                            errMessage = "^ Operator or ) expected";
+                            errMessage = "Operator or ) expected";
                             solution = 0;
                             return;
                         }
@@ -109,7 +97,7 @@ public class InfixCalculator {
                         else if (currentChar == '(') {
                             OK = false;
                             errSpot = i;
-                            errMessage = "^ Operator or ) expected";
+                            errMessage = "Operator or ) expected";
                             solution = 0;
                             return;
                         }
@@ -117,7 +105,7 @@ public class InfixCalculator {
                             if (cStack.isEmpty()) {
                                 OK = false;
                                 errSpot = i;
-                                errMessage = "^ unmatched )";
+                                errMessage = "Unmatched )";
                                 solution = 0;
                                 return;
                             }
@@ -129,7 +117,7 @@ public class InfixCalculator {
             else {
                 OK = false;
                 errSpot = i;
-                errMessage = "^ invalid character";
+                errMessage = "Invalid character";
                 solution = 0;
                 return;
             }
@@ -138,14 +126,14 @@ public class InfixCalculator {
             cStack.clear();
             OK = false;
             errSpot = exp.length();
-            errMessage = "^ not enough )'s";
+            errMessage = "Not enough )'s";
             solution = 0;
             return;
         }
         if (state == 0) {
             OK = false;
             errSpot = exp.length();
-            errMessage = "^ end of expression and Operand or ( expected";
+            errMessage = "End of expression and Operand or ( expected";
             solution = 0;
         }
     }
@@ -165,8 +153,7 @@ public class InfixCalculator {
             return false;
         }
     }
-    private int opVal(char op) {
-        // Placeholder method for operator precedence
+    private int opVal(char op) { // Placeholder method for operator precedence
         return switch (op) {
             case '+', '-' -> 1;
             case '*', '/', '%' -> 2;
@@ -179,7 +166,7 @@ public class InfixCalculator {
     }
     private void processTheOperator() {
         int nr = numStack.pop();
-        char o1 = charStack.pop();
+        char o1 = operatorStack.pop();
         int nl = numStack.pop();
         int r;
 
@@ -212,28 +199,38 @@ public class InfixCalculator {
             first = token.charAt(0);
 
             if (isOp(first)) {
-                while (!charStack.isEmpty() && charStack.peek() != '(' && !lower(charStack.peek(), first)) {
+                while (!operatorStack.isEmpty() && operatorStack.peek() != '(' && !lower(operatorStack.peek(), first)) {
                     processTheOperator();
                 }
-                charStack.push(first);
-            } else if (first == '(') {
-                charStack.push(first);
-            } else if (first == ')') {
-                while (charStack.peek() != '(') {
+                operatorStack.push(first);
+            }
+            else if (first == '(') {
+                operatorStack.push(first);
+            }
+            else if (first == ')') {
+                while (operatorStack.peek() != '(') {
                     processTheOperator();
                 }
-                charStack.pop();
-            } else {
+                operatorStack.pop();
+            }
+            else {
                 num = Integer.parseInt(token);
                 numStack.push(num);
             }
         }
-
-        while (!charStack.isEmpty()) {
+        while (!operatorStack.isEmpty()) {
             processTheOperator();
         }
         solution = numStack.peek();
         tokens.clear();
         numStack.clear();
+    }
+    public String results() {
+        if (!OK) {
+            return exp + " = " + "Invalid infix expression. " + errMessage;
+        }
+        else {
+            return exp + " = " + solution;
+        }
     }
 }
